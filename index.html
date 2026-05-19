@@ -266,12 +266,6 @@
 
   <div class="card">
     <div class="card-title">API 키 관리</div>
-    <div class="info-box" style="margin-bottom:12px;font-size:0.78rem;line-height:1.55;">
-      🔒 API 키는 <strong>이 브라우저의 localStorage</strong>에만 저장되며, HTML 파일 안에는 포함되지 않습니다.<br>
-      따라서 HTML을 배포·공유해도 키는 유출되지 않습니다.<br>
-      다른 PC/브라우저에서 사용하려면 아래 <strong>내보내기</strong>로 백업 후 새 환경에서 <strong>불러오기</strong>로 복원하세요.<br>
-      (백업 파일은 평문이므로 안전한 경로에 보관)
-    </div>
     <div class="action-row" style="margin-bottom:12px;">
       <button class="btn btn-save" onclick="exportKeys()">⬇ 키 내보내기 (.json)</button>
       <button class="btn btn-reset" onclick="document.getElementById('keys-import-input').click()">⬆ 키 불러오기</button>
@@ -279,6 +273,12 @@
     </div>
     <div class="key-section" id="key-section">
       <!-- rendered by JS -->
+    </div>
+    <div class="info-box" style="margin-top:14px;font-size:0.78rem;line-height:1.55;">
+      🔒 API 키는 <strong>이 브라우저의 localStorage</strong>에만 저장되며, HTML 파일 안에는 포함되지 않습니다.<br>
+      따라서 HTML을 배포·공유해도 키는 유출되지 않습니다.<br>
+      다른 PC/브라우저에서 사용하려면 위의 <strong>내보내기</strong>로 백업 후 새 환경에서 <strong>불러오기</strong>로 복원하세요.<br>
+      (백업 파일은 평문이므로 안전한 경로에 보관)
     </div>
   </div>
 
@@ -406,7 +406,8 @@ const LS = {
 const SESSION_KEYS = { claude: '', openai: '', gemini: '' };
 
 function isSessionOnly() {
-  return localStorage.getItem(LS.session_only) === '1';
+  // 기본값 ON: 사용자가 명시적으로 '0'을 저장하지 않은 한 세션 전용 모드로 동작합니다.
+  return localStorage.getItem(LS.session_only) !== '0';
 }
 
 const CLAUDE_MODELS = [
@@ -603,7 +604,8 @@ function toggleSessionOnly(checked) {
     ['claude','openai','gemini'].forEach(id => localStorage.removeItem(LS['key_' + id]));
     localStorage.setItem(LS.session_only, '1');
   } else {
-    localStorage.removeItem(LS.session_only);
+    // 명시적 opt-out: '0'을 저장해 다음 로드 시에도 일반 모드로 유지
+    localStorage.setItem(LS.session_only, '0');
     // 메모리에 남아있던 키는 그대로 폐기 (사용자가 평상시 모드로 돌아간 것이므로
     // 새로 저장하거나 import 해야 함). 명시적 안전을 위해 SESSION_KEYS를 비웁니다.
     SESSION_KEYS.claude = SESSION_KEYS.openai = SESSION_KEYS.gemini = '';
