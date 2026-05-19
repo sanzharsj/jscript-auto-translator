@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JScript Auto-Translator</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif; background: #f5f7fa; color: #1a1a2e; min-height: 100vh; }
+
+    .app-header { background: #1e3a5f; color: white; padding: 20px 32px; }
+    .app-header h1 { font-size: 1.4rem; font-weight: 700; }
+    .app-header p { font-size: 0.85rem; opacity: 0.75; margin-top: 4px; }
+
+    .sticky-top { position: sticky; top: 0; z-index: 100; }
+    .tab-nav { background: white; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; padding: 0 32px; gap: 0; }
+    .tab-nav-spacer { flex: 1; }
+    .btn-csv-dl { padding: 7px 14px; border: 1px solid #1e3a5f; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 500; background: white; color: #1e3a5f; transition: all 0.15s; white-space: nowrap; }
+    .btn-csv-dl:hover { background: #eff6ff; }
+    .tab-btn { padding: 14px 20px; border: none; background: none; cursor: pointer; font-size: 0.9rem; color: #64748b; border-bottom: 3px solid transparent; margin-bottom: -1px; transition: all 0.15s; }
+    .tab-btn.active { color: #1e3a5f; border-bottom-color: #1e3a5f; font-weight: 600; }
+    .api-status-nav { margin-left: 4px; font-size: 0.8rem; display: flex; align-items: center; gap: 6px; padding: 4px 0; }
+    .api-status-badge { display: flex; align-items: center; gap: 5px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 99px; padding: 4px 12px; color: #15803d; font-weight: 500; }
+    .api-status-none { display: flex; align-items: center; gap: 5px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 99px; padding: 4px 12px; color: #1d4ed8; font-weight: 500; }
+    .api-status-link { font-size: 0.75rem; color: #94a3b8; cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; }
+
+    .tab-content { display: none; padding: 28px 32px; max-width: 960px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+
+    .card { background: white; border-radius: 10px; padding: 22px 24px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); }
+    .card-title { font-size: 0.95rem; font-weight: 700; color: #1e3a5f; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; }
+    .section-label { font-size: 0.75rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+
+    /* Provider selector */
+    .provider-grid { display: flex; gap: 10px; }
+    .prov-opt { flex: 1; }
+    .prov-opt input[type=radio] { display: none; }
+    .prov-opt label { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: #374151; transition: all 0.15s; user-select: none; }
+    .prov-opt label .prov-icon { font-size: 1.3rem; }
+    .prov-opt input:checked + label { border-color: #1e3a5f; background: #eff6ff; color: #1e3a5f; }
+    .prov-opt input:disabled + label { opacity: 0.38; cursor: not-allowed; }
+    .prov-opt input:not(:disabled):not(:checked) + label:hover { border-color: #94a3b8; }
+
+    /* API key rows */
+    .key-section { margin-top: 20px; }
+    .key-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f8fafc; }
+    .key-row:last-child { border-bottom: none; }
+    .key-name { min-width: 90px; font-size: 0.82rem; font-weight: 600; color: #374151; }
+    .key-input-wrap { flex: 1; display: flex; gap: 8px; }
+    .key-input { flex: 1; padding: 7px 11px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.82rem; font-family: 'Consolas', 'Monaco', monospace; outline: none; transition: border 0.15s; }
+    .key-input:focus { border-color: #1e3a5f; box-shadow: 0 0 0 2px rgba(30,58,95,0.1); }
+    .key-masked { flex: 1; padding: 7px 11px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 0.82rem; font-family: 'Consolas', 'Monaco', monospace; color: #334155; display: flex; align-items: center; gap: 6px; }
+    .key-saved-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; flex-shrink: 0; }
+
+    /* Buttons */
+    .btn { padding: 7px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 500; transition: all 0.15s; white-space: nowrap; }
+    .btn-save { background: #1e3a5f; color: white; }
+    .btn-save:hover { background: #16304f; }
+    .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-delete { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .btn-delete:hover { background: #fee2e2; }
+    .btn-primary { background: #1e3a5f; color: white; padding: 9px 20px; font-size: 0.875rem; }
+    .btn-primary:hover { background: #16304f; }
+    .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-dl { background: #10b981; color: white; padding: 9px 20px; font-size: 0.875rem; }
+    .btn-dl:hover { background: #059669; }
+    .btn-reset { background: #f1f5f9; color: #475569; padding: 9px 16px; font-size: 0.875rem; }
+    .btn-reset:hover { background: #e2e8f0; }
+
+    /* Upload area */
+    .upload-area { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all 0.2s; }
+    .upload-area:hover, .upload-area.drag { border-color: #1e3a5f; background: #f8faff; }
+    .upload-icon { font-size: 2.2rem; margin-bottom: 8px; }
+    .upload-hint { color: #64748b; font-size: 0.875rem; margin-top: 4px; }
+    .upload-hint strong { color: #1e3a5f; }
+
+    /* File info bar */
+    .file-bar { display: flex; align-items: center; gap: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 0.875rem; color: #374151; }
+    .file-bar span { flex: 1; }
+    .file-bar-icon { font-size: 1.1rem; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    th { background: #f8fafc; padding: 9px 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; color: #475569; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+
+    /* Progress */
+    .progress-wrap { margin: 12px 0; }
+    .progress-bar-bg { background: #e2e8f0; border-radius: 99px; height: 8px; overflow: hidden; }
+    .progress-bar-fill { background: #1e3a5f; height: 100%; border-radius: 99px; transition: width 0.3s; }
+    .progress-text { font-size: 0.82rem; color: #64748b; margin-top: 5px; }
+
+    /* Log table */
+    .log-wrap { max-height: 280px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 12px; }
+    .status-done { color: #10b981; font-weight: 500; }
+    .status-skip { color: #94a3b8; }
+    .status-pass { color: #6366f1; }
+    .status-err  { color: #dc2626; }
+
+    /* Info / warning boxes */
+    .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; font-size: 0.875rem; color: #1d4ed8; }
+    .success-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 16px; font-size: 0.875rem; color: #15803d; }
+
+    .action-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .spacer { height: 12px; }
+    .row-center { display: flex; justify-content: center; margin-top: 8px; }
+
+    /* Layout */
+    .app-body { display: flex; min-height: calc(100vh - 120px); }
+    .sidebar { width: 190px; flex-shrink: 0; background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; }
+    .sidebar-title { padding: 14px 16px; font-size: 0.82rem; font-weight: 700; color: #1e3a5f; border-bottom: 1px solid #f1f5f9; }
+    .main-area { flex: 1; min-width: 0; }
+    .tab-content { max-width: none; }
+    .top-grid { display: grid; grid-template-columns: minmax(280px,1fr) minmax(500px,2.5fr); gap: 16px; align-items: stretch; margin-bottom: 16px; }
+    .top-grid > .card { display: flex; flex-direction: column; }
+    #preview-table { flex: 1; overflow-y: auto; }
+    .hist-empty { padding: 20px 14px; text-align: center; color: #cbd5e1; font-size: 0.78rem; line-height: 1.7; }
+    .hist-item { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; }
+    .hist-item:last-child { border-bottom: none; }
+    .hist-item:hover { background: #f8fafc; }
+    .hist-name { font-size: 0.78rem; font-weight: 600; color: #1e3a5f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .hist-meta { font-size: 0.71rem; color: #94a3b8; margin-top: 2px; }
+    .hist-actions { display: flex; gap: 4px; margin-top: 7px; }
+    .btn-hist-dl  { font-size: 0.71rem; padding: 3px 8px; background: #1e3a5f; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .btn-hist-dl:hover { background: #16304f; }
+    .btn-hist-del { font-size: 0.71rem; padding: 3px 7px; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 4px; cursor: pointer; }
+    .btn-hist-del:hover { background: #fee2e2; }
+    .hist-status-done { font-size: 0.69rem; font-weight: 700; color: #10b981; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 99px; padding: 1px 7px; }
+    .hist-status-stop { font-size: 0.69rem; font-weight: 700; color: #d97706; background: #fffbeb; border: 1px solid #fde68a; border-radius: 99px; padding: 1px 7px; }
+    .hist-status-fail { font-size: 0.69rem; font-weight: 700; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; border-radius: 99px; padding: 1px 7px; }
+    .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; font-weight: 500; }
+    .btn-danger:hover { background: #fee2e2; }
+
+    /* Settings sub-tabs */
+    .sub-tab-nav { display: flex; gap: 4px; border-bottom: 1px solid #e2e8f0; margin-bottom: 14px; }
+    .sub-tab-btn { padding: 8px 16px; border: none; background: none; cursor: pointer; font-size: 0.85rem; color: #64748b; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 0.15s; font-weight: 500; }
+    .sub-tab-btn:hover { color: #1e3a5f; }
+    .sub-tab-btn.active { color: #1e3a5f; border-bottom-color: #1e3a5f; font-weight: 600; }
+    .sub-tab-content { display: none; }
+    .sub-tab-content.active { display: block; }
+
+    /* Settings tab compact overrides */
+    #tab-settings { padding: 16px 24px; }
+    #tab-settings .card { padding: 14px 18px; margin-bottom: 10px; }
+    #tab-settings .card-title { font-size: 0.88rem; margin-bottom: 10px; padding-bottom: 7px; }
+    #tab-settings .section-label { margin-bottom: 7px; }
+    #tab-settings .provider-grid { gap: 8px; }
+    #tab-settings .prov-opt label { padding: 8px 10px; gap: 3px; font-size: 0.82rem; }
+    #tab-settings .prov-opt label .prov-icon { font-size: 1.1rem; }
+    #tab-settings .key-section { margin-top: 8px; }
+    #tab-settings .key-row { padding: 8px 0; gap: 10px; }
+    #tab-settings p[style] { margin-bottom: 10px !important; }
+  </style>
+</head>
+<body>
+
+<div class="sticky-top">
+<div class="app-header">
+  <h1>JScript Auto-Translator</h1>
+  <p>한국어 자막을 영어 · 러시아어 · 베트남어로 번역합니다</p>
+</div>
+<div class="tab-nav">
+  <button class="tab-btn active" id="tab-btn-translate" onclick="switchTab('translate')">번역</button>
+  <button class="tab-btn" id="tab-btn-settings" onclick="switchTab('settings')">⚙ 설정</button>
+  <div class="api-status-nav" id="api-status-nav"></div>
+  <div class="tab-nav-spacer"></div>
+  <button class="btn-csv-dl" onclick="downloadCsvTemplate()">⬇ CSV 양식 다운로드</button>
+</div>
+</div><!-- /sticky-top -->
+
+<div class="app-body">
+
+<!-- 영구 사이드바: 작업 이력 -->
+<div class="sidebar">
+  <div class="sidebar-title" style="display:flex;align-items:center;justify-content:space-between;">
+    작업 이력
+    <button class="btn-hist-del" style="font-size:0.68rem;padding:2px 7px;" onclick="if(confirm('작업 이력을 모두 삭제하시겠습니까?')){localStorage.removeItem(HIST_KEY);renderHistory();}">Clear</button>
+  </div>
+  <div id="history-list"></div>
+</div>
+
+<div class="main-area">
+
+<!-- ── Settings Tab ─────────────────────────────────────────────── -->
+<div id="tab-settings" class="tab-content">
+
+  <div class="sub-tab-nav">
+    <button class="sub-tab-btn active" id="sub-tab-btn-api"      onclick="switchSettingsSub('api')">API 설정</button>
+    <button class="sub-tab-btn"        id="sub-tab-btn-password" onclick="switchSettingsSub('password')">비밀번호 설정</button>
+  </div>
+
+  <div id="sub-tab-api" class="sub-tab-content active">
+
+  <div class="card" id="session-mode-card">
+    <div class="card-title">보안 모드</div>
+    <div style="display:flex;align-items:flex-start;gap:14px;">
+      <label style="display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;font-size:0.85rem;font-weight:600;color:#1e3a5f;flex-shrink:0;padding-top:2px;">
+        <input type="checkbox" id="session-toggle" onchange="toggleSessionOnly(this.checked)" style="width:16px;height:16px;cursor:pointer;">
+        세션 전용 모드
+      </label>
+      <div style="font-size:0.78rem;color:#64748b;line-height:1.55;">
+        켜면 API 키가 <strong>브라우저 저장소가 아닌 메모리에만</strong> 보관되어, 탭을 닫으면 즉시 사라집니다.
+        매 세션마다 "키 불러오기"로 백업 JSON을 불러와야 사용 가능합니다. 공용 PC·노트북 분실 위험이 있을 때 권장합니다.
+      </div>
+    </div>
+    <div id="session-warning" class="info-box" style="margin-top:10px;display:none;font-size:0.78rem;">
+      ⚠ 현재 <strong>세션 전용 모드</strong> 입니다. 페이지를 닫거나 새로고침하면 키가 사라지므로, 작업 시작 전에 키 불러오기를 해주세요.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">현재 사용 API</div>
+    <div class="section-label">번역에 사용할 제공자를 선택하세요 (저장된 키가 있는 항목만 선택 가능)</div>
+    <div class="provider-grid" id="provider-grid">
+      <!-- rendered by JS -->
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">API 키 관리</div>
+    <div class="info-box" style="margin-bottom:12px;font-size:0.78rem;line-height:1.55;">
+      🔒 API 키는 <strong>이 브라우저의 localStorage</strong>에만 저장되며, HTML 파일 안에는 포함되지 않습니다.<br>
+      따라서 HTML을 배포·공유해도 키는 유출되지 않습니다.<br>
+      다른 PC/브라우저에서 사용하려면 아래 <strong>내보내기</strong>로 백업 후 새 환경에서 <strong>불러오기</strong>로 복원하세요.<br>
+      (백업 파일은 평문이므로 안전한 경로에 보관)
+    </div>
+    <div class="action-row" style="margin-bottom:12px;">
+      <button class="btn btn-save" onclick="exportKeys()">⬇ 키 내보내기 (.json)</button>
+      <button class="btn btn-reset" onclick="document.getElementById('keys-import-input').click()">⬆ 키 불러오기</button>
+      <input type="file" id="keys-import-input" accept=".json" style="display:none" onchange="importKeys(this.files[0])">
+    </div>
+    <div class="key-section" id="key-section">
+      <!-- rendered by JS -->
+    </div>
+  </div>
+
+  <div class="card" style="border:1px solid #fecaca;">
+    <div class="card-title" style="color:#dc2626;border-bottom-color:#fecaca;">초기화</div>
+    <p style="font-size:0.85rem;color:#64748b;margin-bottom:14px;">모든 API 키, 설정, 작업 이력을 삭제합니다. 이 작업은 되돌릴 수 없습니다.</p>
+    <button class="btn-danger" onclick="resetAll()">🔄 전체 초기화</button>
+  </div>
+
+  </div><!-- /sub-tab-api -->
+
+  <div id="sub-tab-password" class="sub-tab-content">
+
+  <div class="card" id="password-card">
+    <div class="card-title">비밀번호 설정 <span id="pw-status" style="font-weight:400;font-size:0.78rem;margin-left:8px;"></span></div>
+    <div style="font-size:0.78rem;color:#64748b;margin-bottom:10px;line-height:1.55;">
+      세 항목을 모두 빈 상태로 저장하면 비밀번호가 해제됩니다.<br>
+      비밀번호 분실 시 복구할 수 없으니 안전한 곳에 기록해 두세요.
+    </div>
+    <div class="key-section">
+      <div class="key-row">
+        <div class="key-name">기존 비밀번호</div>
+        <div class="key-input-wrap">
+          <input class="key-input" id="pw-current" type="password" placeholder="(설정된 비밀번호가 없으면 비워두세요)">
+        </div>
+      </div>
+      <div class="key-row">
+        <div class="key-name">새 비밀번호</div>
+        <div class="key-input-wrap">
+          <input class="key-input" id="pw-new" type="password" placeholder="새 비밀번호 (빈 칸으로 두면 해제)">
+        </div>
+      </div>
+      <div class="key-row">
+        <div class="key-name">비밀번호 재확인</div>
+        <div class="key-input-wrap">
+          <input class="key-input" id="pw-confirm" type="password" placeholder="새 비밀번호를 다시 입력">
+        </div>
+      </div>
+    </div>
+    <div class="action-row" style="margin-top:10px;">
+      <button class="btn btn-save" onclick="savePassword()">저장</button>
+    </div>
+  </div>
+
+  </div><!-- /sub-tab-password -->
+
+</div>
+
+<!-- ── Translate Tab ────────────────────────────────────────────── -->
+<div id="tab-translate" class="tab-content active">
+
+  <!-- 상단 2컬럼 -->
+  <div class="top-grid">
+
+    <!-- Col 1: CSV 업로드 -->
+    <div class="card" id="upload-card" style="margin-bottom:0">
+      <div class="card-title">CSV 파일 업로드</div>
+      <p style="font-size:0.82rem;color:#64748b;margin-bottom:12px;">
+        필수 컬럼: <code>순서</code>, <code>페이지</code>, <code>Korean</code>
+      </p>
+      <div class="upload-area" id="upload-area" onclick="document.getElementById('file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <div class="upload-icon">📂</div>
+        <div><strong>클릭하거나 CSV 파일을 여기에 드래그</strong></div>
+        <div class="upload-hint">UTF-8 / EUC-KR 자동 감지</div>
+      </div>
+      <input type="file" id="file-input" accept=".csv" style="display:none" onchange="handleFileSelect(this.files[0])">
+    </div>
+
+    <!-- Col 3: 미리보기 -->
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">미리보기 <span id="preview-count" style="font-weight:400;color:#64748b"></span></div>
+      <div id="preview-table">
+        <div style="padding:40px 0;text-align:center;color:#cbd5e1;font-size:0.85rem;">CSV 파일을 업로드하면<br>미리보기가 표시됩니다</div>
+      </div>
+    </div>
+
+  </div><!-- /top-grid -->
+
+  <!-- 하단: 번역 실행 (전체 너비) -->
+  <div class="card" id="translate-card">
+    <div class="card-title">번역 실행</div>
+    <div id="translate-inner">
+      <div class="action-row">
+        <button class="btn btn-primary" id="btn-start" onclick="startTranslation()" disabled style="opacity:0.45;cursor:not-allowed;">전체 번역 시작</button>
+        <span style="font-size:0.82rem;color:#94a3b8;">CSV 파일을 먼저 업로드해주세요</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-area -->
+</div><!-- /app-body -->
+
+
+<script>
+// ─────────────────────────────────────────────────────────────────
+//  Constants
+// ─────────────────────────────────────────────────────────────────
+const SYSTEM_PROMPT = `You are a professional medical laboratory translator specializing in clinical laboratory science education (specimen handling, blood tests, centrifugation, laboratory equipment, clinical chemistry, hematology, immunology).
+
+Translate the given Korean subtitle into English, Russian, and Vietnamese.
+
+Rules:
+- Preserve technical terms exactly as written: SST Tube, RCF, EDTA, CBC, Serum, Plasma, LFT, PCR, LBC, CLSI, Capillary Tube, Filter Card, Transport Medium, Bilirubin, Fibrin, Heparin, etc.
+- Lines starting with ** are citation references — output them identical in all three languages without any change.
+- Use concise, natural language appropriate for on-screen educational subtitles.
+- Maintain a formal, professional tone consistent with medical training material.
+- Output ONLY valid JSON with keys "English", "Russian", "Vietnamese" — no markdown, no explanation, no other text.`;
+
+const LS = {
+  provider: 'jat_provider',
+  key_claude: 'jat_key_claude',
+  key_openai: 'jat_key_openai',
+  key_gemini: 'jat_key_gemini',
+  gemini_model: 'jat_gemini_model',
+  claude_model: 'jat_claude_model',
+  session_only: 'jat_session_only',
+  password_hash: 'jat_password_hash',
+};
+
+// In-memory key storage used when 세션 전용 모드 is ON.
+// Lives only for the current page session — wiped on reload/close.
+const SESSION_KEYS = { claude: '', openai: '', gemini: '' };
+
+function isSessionOnly() {
+  return localStorage.getItem(LS.session_only) === '1';
+}
+
+const CLAUDE_MODELS = [
+  { id: 'claude-haiku-4-5',  label: 'Claude Haiku 4.5',  note: '빠름 · 저렴', batch: 10, delay: 500 },
+  { id: 'claude-sonnet-4-6', label: 'Claude Sonnet 4.6', note: '고품질', batch: 10, delay: 1000 },
+];
+
+const GEMINI_MODELS = [
+  { id: 'gemini-flash-lite-latest', label: 'Gemini Flash Lite (최신)', note: '최신 별칭 · 권장', batch: 8, delay: 3000 },
+  { id: 'gemini-2.5-flash-lite',    label: 'Gemini 2.5 Flash Lite',    note: '안정',            batch: 8, delay: 3000 },
+  { id: 'gemini-2.0-flash-lite',    label: 'Gemini 2.0 Flash Lite',    note: '30RPM · 구버전',  batch: 8, delay: 3000 },
+  { id: 'gemini-2.0-flash',         label: 'Gemini 2.0 Flash',         note: '15RPM · 고품질', batch: 5, delay: 5000 },
+];
+
+function getClaudeModel() {
+  return localStorage.getItem(LS.claude_model) || 'claude-haiku-4-5';
+}
+
+function getClaudeProfile() {
+  const id = getClaudeModel();
+  return CLAUDE_MODELS.find(m => m.id === id) || CLAUDE_MODELS[0];
+}
+
+function setClaudeModel(id) {
+  localStorage.setItem(LS.claude_model, id);
+}
+
+function getGeminiModel() {
+  const saved = localStorage.getItem(LS.gemini_model);
+  // 저장된 ID가 현재 모델 목록에 없으면 첫 번째(권장 최신)로 폴백
+  if (saved && GEMINI_MODELS.some(m => m.id === saved)) return saved;
+  return GEMINI_MODELS[0].id;
+}
+
+function getGeminiProfile() {
+  const id = getGeminiModel();
+  return GEMINI_MODELS.find(m => m.id === id) || GEMINI_MODELS[0];
+}
+
+function setGeminiModel(id) {
+  localStorage.setItem(LS.gemini_model, id);
+}
+
+function downloadCsvTemplate() {
+  const header = '순서,페이지,Korean\n';
+  const sample = '1,1,예시 자막 텍스트를 여기에 입력하세요\n2,1,두 번째 자막 텍스트\n';
+  const blob = new Blob(['﻿' + header + sample], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'subtitle_template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+const PROVIDERS = [
+  { id: 'claude',  label: 'Claude',  icon: '🤖', sub: 'Anthropic' },
+  { id: 'openai',  label: 'ChatGPT', icon: '💬', sub: 'OpenAI' },
+  { id: 'gemini',  label: 'Gemini',  icon: '✨', sub: 'Google' },
+];
+
+// ─────────────────────────────────────────────────────────────────
+//  Tab switching
+// ─────────────────────────────────────────────────────────────────
+function switchSettingsSub(name) {
+  document.querySelectorAll('#tab-settings .sub-tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('#tab-settings .sub-tab-btn').forEach(el => el.classList.remove('active'));
+  const content = document.getElementById('sub-tab-' + name);
+  const btn = document.getElementById('sub-tab-btn-' + name);
+  if (content) content.classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('tab-btn-' + name).classList.add('active');
+  document.querySelector('.sidebar').style.display = name === 'translate' ? 'flex' : 'none';
+  if (name === 'translate') renderApiCheck();
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Settings helpers
+// ─────────────────────────────────────────────────────────────────
+function getSavedKey(id) {
+  if (isSessionOnly()) return SESSION_KEYS[id] || '';
+  return localStorage.getItem(LS['key_' + id]) || '';
+}
+function setSavedKey(id, val) {
+  if (isSessionOnly()) { SESSION_KEYS[id] = val; return; }
+  localStorage.setItem(LS['key_' + id], val);
+}
+function removeSavedKey(id) {
+  if (isSessionOnly()) { SESSION_KEYS[id] = ''; return; }
+  localStorage.removeItem(LS['key_' + id]);
+}
+function getActiveProvider() { return localStorage.getItem(LS.provider) || ''; }
+
+function maskKey(key) {
+  if (!key) return '';
+  if (key.length <= 10) return '••••••••';
+  return key.slice(0, 6) + '...' + key.slice(-4);
+}
+
+function saveKey(providerId) {
+  const input = document.getElementById('input-' + providerId);
+  const val = input.value.trim();
+  if (!val) { alert('API 키를 입력해주세요.'); return; }
+  setSavedKey(providerId, val);
+  // auto-select if no active provider set
+  if (!getActiveProvider()) localStorage.setItem(LS.provider, providerId);
+  renderSettings();
+  renderApiCheck();
+}
+
+function deleteKey(providerId) {
+  if (!confirm('API 키를 삭제하시겠습니까?')) return;
+  removeSavedKey(providerId);
+  // if deleted provider was active, clear active
+  if (getActiveProvider() === providerId) {
+    const next = PROVIDERS.find(p => p.id !== providerId && getSavedKey(p.id));
+    localStorage.setItem(LS.provider, next ? next.id : '');
+  }
+  renderSettings();
+  renderApiCheck();
+}
+
+function setProvider(id) {
+  if (!getSavedKey(id)) return;
+  localStorage.setItem(LS.provider, id);
+  renderSettings();
+  renderApiCheck();
+}
+
+async function sha256(text) {
+  const buf = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function getPasswordHash() { return localStorage.getItem(LS.password_hash) || ''; }
+function hasPassword() { return !!getPasswordHash(); }
+
+async function savePassword() {
+  const curEl = document.getElementById('pw-current');
+  const newEl = document.getElementById('pw-new');
+  const confEl = document.getElementById('pw-confirm');
+  const cur = curEl.value;
+  const np = newEl.value;
+  const cf = confEl.value;
+
+  if (hasPassword()) {
+    if (!cur) { alert('기존 비밀번호를 입력해주세요.'); return; }
+    const curHash = await sha256(cur);
+    if (curHash !== getPasswordHash()) { alert('기존 비밀번호가 일치하지 않습니다.'); return; }
+  } else if (cur) {
+    alert('설정된 비밀번호가 없습니다. 기존 비밀번호 칸은 비워두세요.');
+    return;
+  }
+
+  if (np !== cf) { alert('새 비밀번호와 재확인이 일치하지 않습니다.'); return; }
+
+  if (!np) {
+    if (hasPassword() && !confirm('새 비밀번호가 비어 있습니다. 비밀번호를 해제하시겠습니까?')) return;
+    localStorage.removeItem(LS.password_hash);
+    alert(hasPassword() ? '비밀번호가 해제되었습니다.' : '변경 사항이 없습니다.');
+  } else {
+    const newHash = await sha256(np);
+    localStorage.setItem(LS.password_hash, newHash);
+    alert('비밀번호가 저장되었습니다.');
+  }
+
+  curEl.value = newEl.value = confEl.value = '';
+  renderSettings();
+}
+
+function toggleSessionOnly(checked) {
+  if (checked) {
+    const hasStoredKeys = ['claude','openai','gemini'].some(id => localStorage.getItem(LS['key_' + id]));
+    let proceed = true;
+    if (hasStoredKeys) {
+      proceed = confirm(
+        '세션 전용 모드로 전환합니다.\n\n' +
+        '• 현재 브라우저에 저장된 모든 API 키가 즉시 삭제됩니다.\n' +
+        '• 이후 매 세션마다 "키 불러오기"로 백업 JSON을 불러와야 합니다.\n\n' +
+        '계속하기 전에 "키 내보내기"로 백업을 받아두셨나요?'
+      );
+    }
+    if (!proceed) {
+      document.getElementById('session-toggle').checked = false;
+      return;
+    }
+    ['claude','openai','gemini'].forEach(id => localStorage.removeItem(LS['key_' + id]));
+    localStorage.setItem(LS.session_only, '1');
+  } else {
+    localStorage.removeItem(LS.session_only);
+    // 메모리에 남아있던 키는 그대로 폐기 (사용자가 평상시 모드로 돌아간 것이므로
+    // 새로 저장하거나 import 해야 함). 명시적 안전을 위해 SESSION_KEYS를 비웁니다.
+    SESSION_KEYS.claude = SESSION_KEYS.openai = SESSION_KEYS.gemini = '';
+  }
+  renderSettings();
+  renderApiCheck();
+}
+
+function renderSettings() {
+  const sessionOnly = isSessionOnly();
+  const toggle = document.getElementById('session-toggle');
+  if (toggle) toggle.checked = sessionOnly;
+  const warn = document.getElementById('session-warning');
+  if (warn) warn.style.display = sessionOnly ? 'block' : 'none';
+
+  const pwStatus = document.getElementById('pw-status');
+  if (pwStatus) {
+    pwStatus.textContent = hasPassword() ? '· 설정됨' : '· 미설정';
+    pwStatus.style.color = hasPassword() ? '#10b981' : '#94a3b8';
+  }
+  const pwCur = document.getElementById('pw-current');
+  if (pwCur) pwCur.disabled = !hasPassword();
+
+  const active = getActiveProvider();
+
+  // Provider grid
+  const grid = document.getElementById('provider-grid');
+  grid.innerHTML = PROVIDERS.map(p => {
+    const hasKey = !!getSavedKey(p.id);
+    const checked = active === p.id && hasKey ? 'checked' : '';
+    const disabled = hasKey ? '' : 'disabled';
+    return `
+      <div class="prov-opt">
+        <input type="radio" name="provider" id="prov-${p.id}" ${checked} ${disabled}
+               onchange="setProvider('${p.id}')">
+        <label for="prov-${p.id}">
+          <span class="prov-icon">${p.icon}</span>
+          <span>${p.label}</span>
+          <span style="font-size:0.72rem;color:#94a3b8">${p.sub}</span>
+          ${hasKey ? '<span style="font-size:0.7rem;color:#10b981">✔ 저장됨</span>' : '<span style="font-size:0.7rem;color:#cbd5e1">미설정</span>'}
+        </label>
+      </div>`;
+  }).join('');
+
+  // Key section
+  const section = document.getElementById('key-section');
+  const currentGeminiModel = getGeminiModel();
+  const currentClaudeModel = getClaudeModel();
+  section.innerHTML = PROVIDERS.map(p => {
+    const saved = getSavedKey(p.id);
+    let rows = '';
+    if (saved) {
+      rows += `
+        <div class="key-row">
+          <div class="key-name">${p.icon} ${p.label}</div>
+          <div class="key-input-wrap">
+            <div class="key-masked" id="key-masked-${p.id}"><span class="key-saved-dot"></span><span id="key-text-${p.id}">${maskKey(saved)}</span></div>
+            <button class="btn btn-delete" onclick="deleteKey('${p.id}')">삭제</button>
+          </div>
+        </div>`;
+    } else {
+      rows += `
+        <div class="key-row">
+          <div class="key-name">${p.icon} ${p.label}</div>
+          <div class="key-input-wrap">
+            <input class="key-input" id="input-${p.id}" type="password"
+                   placeholder="${p.id === 'claude' ? 'sk-ant-...' : p.id === 'openai' ? 'sk-...' : 'AIza...'}"
+                   onkeydown="if(event.key==='Enter')saveKey('${p.id}')">
+            <button class="btn btn-save" onclick="saveKey('${p.id}')">저장</button>
+          </div>
+        </div>`;
+    }
+    if (p.id === 'claude') {
+      rows += `
+        <div class="key-row">
+          <div class="key-name" style="color:#64748b;">모델</div>
+          <div class="key-input-wrap" style="flex-wrap:wrap;gap:6px;">
+            ${CLAUDE_MODELS.map(m => `
+              <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid ${currentClaudeModel === m.id ? '#1e3a5f' : '#e2e8f0'};border-radius:6px;cursor:pointer;font-size:0.78rem;background:${currentClaudeModel === m.id ? '#eff6ff' : 'white'};color:${currentClaudeModel === m.id ? '#1e3a5f' : '#374151'};">
+                <input type="radio" name="claude-model" value="${m.id}" ${currentClaudeModel === m.id ? 'checked' : ''} style="display:none;" onchange="setClaudeModel('${m.id}');renderSettings();">
+                <span style="font-weight:600;">${m.label}</span>
+                <span style="color:#94a3b8;font-size:0.71rem;">${m.note}</span>
+              </label>`).join('')}
+          </div>
+        </div>`;
+    }
+    if (p.id === 'gemini') {
+      rows += `
+        <div class="key-row">
+          <div class="key-name" style="color:#64748b;">모델</div>
+          <div class="key-input-wrap" style="flex-wrap:wrap;gap:6px;">
+            ${GEMINI_MODELS.map(m => `
+              <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid ${currentGeminiModel === m.id ? '#1e3a5f' : '#e2e8f0'};border-radius:6px;cursor:pointer;font-size:0.78rem;background:${currentGeminiModel === m.id ? '#eff6ff' : 'white'};color:${currentGeminiModel === m.id ? '#1e3a5f' : '#374151'};">
+                <input type="radio" name="gemini-model" value="${m.id}" ${currentGeminiModel === m.id ? 'checked' : ''} style="display:none;" onchange="setGeminiModel('${m.id}');renderSettings();">
+                <span style="font-weight:600;">${m.label}</span>
+                <span style="color:#94a3b8;font-size:0.71rem;">${m.note}</span>
+              </label>`).join('')}
+          </div>
+        </div>`;
+    }
+    return rows;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Translate tab — API check banner
+// ─────────────────────────────────────────────────────────────────
+function renderApiCheck() {
+  const nav = document.getElementById('api-status-nav');
+  const provider = getActiveProvider();
+  const key = provider ? getSavedKey(provider) : '';
+  const pInfo = PROVIDERS.find(p => p.id === provider);
+
+  if (key && pInfo) {
+    nav.innerHTML = `
+      <div class="api-status-badge">
+        ${pInfo.icon} <span>${pInfo.label} 연결됨</span>
+      </div>
+      <button class="api-status-link" onclick="switchTab('settings')">변경</button>`;
+  } else {
+    nav.innerHTML = `
+      <div class="api-status-none">
+        ⚙ <span>API 미설정</span>
+      </div>
+      <button class="api-status-link" onclick="switchTab('settings')">설정하기</button>`;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  CSV parsing
+// ─────────────────────────────────────────────────────────────────
+let csvRows = null;
+let csvFileName = '';
+
+async function readFileText(file) {
+  const tryDecode = (buf, enc) => new TextDecoder(enc, { fatal: false }).decode(buf);
+  const buf = await file.arrayBuffer();
+  let text = tryDecode(buf, 'utf-8');
+  if (text.includes('�')) text = tryDecode(buf, 'euc-kr');
+  return text;
+}
+
+function parseCSV(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const rows = [];
+  let i = 0, len = text.length;
+  while (i <= len) {
+    const row = [];
+    while (i < len && text[i] !== '\n') {
+      if (text[i] === '"') {
+        let f = ''; i++;
+        while (i < len) {
+          if (text[i] === '"' && text[i+1] === '"') { f += '"'; i += 2; }
+          else if (text[i] === '"') { i++; break; }
+          else f += text[i++];
+        }
+        row.push(f);
+        if (text[i] === ',') i++;
+      } else {
+        let f = '';
+        while (i < len && text[i] !== ',' && text[i] !== '\n') f += text[i++];
+        row.push(f.trim());
+        if (text[i] === ',') i++;
+      }
+    }
+    i++;
+    if (row.length && !(row.length === 1 && row[0] === '')) rows.push(row);
+  }
+  if (!rows.length) return null;
+  const headers = rows[0].map(h => h.trim());
+  const data = rows.slice(1).map(r => {
+    const obj = {};
+    headers.forEach((h, j) => { obj[h] = (r[j] || '').trim(); });
+    return obj;
+  }).filter(r => Object.values(r).some(v => v));
+  return { headers, data };
+}
+
+async function handleFileSelect(file) {
+  if (!file) return;
+  const text = await readFileText(file);
+  const parsed = parseCSV(text);
+  if (!parsed) { alert('CSV 파싱에 실패했습니다.'); return; }
+  if (!parsed.headers.includes('Korean')) {
+    alert(`'Korean' 컬럼을 찾을 수 없습니다.\n감지된 컬럼: ${parsed.headers.join(', ')}`);
+    return;
+  }
+  csvRows = parsed.data;
+  csvFileName = file.name;
+  renderPreview(parsed.headers, parsed.data);
+  resetTranslateUI();
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-area').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFileSelect(file);
+}
+
+function renderPreview(headers, data) {
+  document.getElementById('preview-count').textContent = `(총 ${data.length}행)`;
+  const cols = headers.filter(h => ['순서','페이지','Korean'].includes(h));
+  document.getElementById('preview-table').innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>${cols.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+    <tbody>${data.slice(0,5).map(r => `<tr>${cols.map(h => `<td title="${esc(r[h])}">${esc(r[h])}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table></div>`;
+  // 번역 실행 버튼 활성화
+  resetTranslateUI();
+}
+
+function resetFile() {
+  csvRows = null; csvFileName = '';
+  document.getElementById('file-input').value = '';
+  document.getElementById('preview-count').textContent = '';
+  document.getElementById('preview-table').innerHTML =
+    '<div style="padding:40px 0;text-align:center;color:#cbd5e1;font-size:0.85rem;">CSV 파일을 업로드하면<br>미리보기가 표시됩니다</div>';
+  // 번역 실행 비활성화
+  const inner = document.getElementById('translate-inner');
+  inner.innerHTML = `<div class="action-row">
+    <button class="btn btn-primary" disabled style="opacity:0.45;cursor:not-allowed;">전체 번역 시작</button>
+    <span style="font-size:0.82rem;color:#94a3b8;">CSV 파일을 먼저 업로드해주세요</span>
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Translation
+// ─────────────────────────────────────────────────────────────────
+function isPassthrough(row) {
+  return String(row['순서'] || '').trim() === '*' || String(row['Korean'] || '').startsWith('**');
+}
+
+function buildContext(rows, idx, window = 2) {
+  const lines = [];
+  for (let j = Math.max(0, idx - window); j < idx; j++)
+    lines.push(`[PREV-${idx-j}]: ${rows[j]['Korean']}`);
+  for (let j = idx + 1; j < Math.min(rows.length, idx + window + 1); j++)
+    lines.push(`[NEXT-${j-idx}]: ${rows[j]['Korean']}`);
+  return lines.join('\n') || '(no surrounding context)';
+}
+
+function buildUserMsg(korean, context) {
+  return `Context (surrounding subtitles for reference only — do not translate these):\n${context}\n\nTranslate this subtitle:\n[CURRENT]: ${korean}`;
+}
+
+async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function callClaudeBatch(key, items) {
+  const model = getClaudeModel();
+  const lines = items.map((item, i) => `[${i + 1}] ${item.korean}`).join('\n');
+  const userMsg = `아래 ${items.length}개의 한국어 자막을 번역하세요. 설명 없이 JSON 배열만 출력하세요 (길이 ${items.length}개).\n\n${lines}\n\n출력 형식:\n[{"English":"...","Russian":"...","Vietnamese":"..."},...]`;
+  const body = { model, max_tokens: 4096, system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userMsg }] };
+  const retryDelays = [15000, 30000, 60000];
+  let totalWaited = 0;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 429) {
+      const wait = retryDelays[attempt] ?? 60000;
+      totalWaited += wait;
+      if (attempt >= 3 || totalWaited > 30000) throw new Error(`Claude 429: 요청 한도 초과 — 30초 내 재시도 실패`);
+      const ptextEl = document.getElementById('ptext');
+      for (let remaining = wait / 1000; remaining > 0; remaining--) {
+        if (stopRequested) return null;
+        if (ptextEl) ptextEl.textContent = `Claude 한도 초과 — ${remaining}초 후 재시도... (${attempt + 1}/3)`;
+        await sleep(1000);
+      }
+      continue;
+    }
+    if (!res.ok) { const t = await res.text(); throw new Error(`Claude ${res.status}: ${t}`); }
+    const data = await res.json();
+    const raw = data.content[0].text.trim();
+    const clean = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const parsed = JSON.parse(clean);
+    if (!Array.isArray(parsed)) throw new Error('Claude 응답 형식 오류');
+    return parsed;
+  }
+}
+
+async function callOpenAI(key, korean, context) {
+  const body = { model: 'gpt-4o', max_tokens: 1024,
+    messages: [{ role: 'system', content: SYSTEM_PROMPT },
+               { role: 'user', content: buildUserMsg(korean, context) }] };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (res.status === 429 && attempt === 0) { await sleep(30000); continue; }
+    if (!res.ok) { const t = await res.text(); throw new Error(`OpenAI ${res.status}: ${t}`); }
+    const data = await res.json();
+    return JSON.parse(data.choices[0].message.content.trim());
+  }
+}
+
+// Gemini 배치 번역 (items: [{idx, korean}] → [{English,Russian,Vietnamese}])
+async function callGeminiBatch(key, items) {
+  const model = getGeminiModel();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+
+  const lines = items.map((item, i) => `[${i + 1}] ${item.korean}`).join('\n');
+  const userMsg = `아래 ${items.length}개의 한국어 자막을 번역하세요. 설명 없이 JSON 배열만 출력하세요 (길이 ${items.length}개).\n\n${lines}\n\n출력 형식:\n[{"English":"...","Russian":"...","Vietnamese":"..."},...]`;
+  const body = {
+    system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents: [{ role: 'user', parts: [{ text: userMsg }] }],
+    generationConfig: { maxOutputTokens: 3000, temperature: 0.2 },
+  };
+  const retryDelays = [15000, 30000, 60000];
+  let totalWaited = 0;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (res.status === 429) {
+      // 실제 사유를 함께 보존 (모델명 오류·쿼터·RPM 등 구분 가능하도록)
+      let detail = '';
+      try { const j = await res.clone().json(); detail = j?.error?.message || ''; } catch {}
+      const wait = retryDelays[attempt] ?? 60000;
+      totalWaited += wait;
+      if (attempt >= 3 || totalWaited > 30000) {
+        throw new Error(`Gemini 429: ${detail || '요청 한도 초과'} — 재시도 실패 (모델: ${model})`);
+      }
+      const ptextEl = document.getElementById('ptext');
+      for (let remaining = wait / 1000; remaining > 0; remaining--) {
+        if (stopRequested) return null;
+        if (ptextEl) ptextEl.textContent = `Gemini 한도 초과 — ${remaining}초 후 재시도... (${attempt + 1}/3)${detail ? ' · ' + detail.slice(0, 80) : ''}`;
+        await sleep(1000);
+      }
+      continue;
+    }
+    if (!res.ok) {
+      let msg = `Gemini ${res.status}`;
+      try { const j = await res.json(); msg = j?.error?.message || msg; } catch {}
+      throw new Error(`${msg} (모델: ${model})`);
+    }
+    const data = await res.json();
+    const candidate = data.candidates?.[0];
+    if (!candidate?.content?.parts?.[0]?.text) throw new Error(`Gemini 응답 없음 (${candidate?.finishReason || 'UNKNOWN'})`);
+    const raw = candidate.content.parts[0].text.trim();
+    const clean = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+    const parsed = JSON.parse(clean);
+    if (!Array.isArray(parsed)) throw new Error('Gemini 응답 형식 오류');
+    return parsed;
+  }
+}
+
+function getTranslateFn() {
+  const p = getActiveProvider();
+  if (p === 'openai') return callOpenAI;
+  throw new Error('API 제공자가 선택되지 않았습니다.');
+}
+
+let translating = false;
+let stopRequested = false;
+let resultRows = null;
+let currentTotal = 0;
+let currentDone = 0;
+let currentErrors = 0;
+let currentErrorCodes = [];
+
+function resetTranslateUI() {
+  translating = false; stopRequested = false; resultRows = null;
+  const inner = document.getElementById('translate-inner');
+  inner.innerHTML = `
+    <div class="action-row">
+      <button class="btn btn-primary" id="btn-start" onclick="startTranslation()">전체 번역 시작</button>
+      <button class="btn btn-reset" onclick="resetFile()">파일 다시 선택</button>
+    </div>`;
+}
+
+
+async function startTranslation() {
+  if (translating) return;
+  const provider = getActiveProvider();
+  const key = getSavedKey(provider);
+  if (!key) { alert('설정 탭에서 API 키를 저장해주세요.'); return; }
+  if (!csvRows || !csvRows.length) { alert('CSV 파일을 먼저 업로드해주세요.'); return; }
+
+  translating = true; stopRequested = false;
+  const total = csvRows.length;
+  currentTotal = total; currentDone = 0; currentErrors = 0; currentErrorCodes = [];
+  resultRows = csvRows.map(r => ({ ...r, English: '', Russian: '', Vietnamese: '' }));
+  let errors = 0;
+  const errorCodes = [];
+  const logRows = [];
+
+  const inner = document.getElementById('translate-inner');
+  inner.innerHTML = `
+    <div class="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="pbar" style="width:0%"></div></div>
+      <div class="progress-text" id="ptext">준비 중...</div>
+    </div>
+    <div class="action-row" style="margin-top:8px;">
+      <button class="btn btn-reset" onclick="stopTranslation()">중단</button>
+    </div>
+    <div class="log-wrap"><div class="table-wrap" id="log-table"></div></div>`;
+
+  const isGemini = provider === 'gemini';
+  const isClaude = provider === 'claude';
+  const isBatch = isGemini || isClaude;
+  const geminiProfile = isGemini ? getGeminiProfile() : null;
+  const claudeProfile = isClaude ? getClaudeProfile() : null;
+  const BATCH = isGemini ? geminiProfile.batch : isClaude ? claudeProfile.batch : 1;
+  const DELAY = isGemini ? geminiProfile.delay : isClaude ? claudeProfile.delay : 1000;
+  const translateFn = isBatch ? null : getTranslateFn();
+
+  for (let bStart = 0; bStart < total; bStart += BATCH) {
+    if (stopRequested) break;
+    const bEnd = Math.min(bStart + BATCH, total);
+
+    if (isBatch) {
+      // ── 배치 모드 (Claude / Gemini) ──
+      const toTranslate = [];
+      for (let i = bStart; i < bEnd; i++) {
+        const korean = csvRows[i]['Korean'] || '';
+        if (korean.trim() && !isPassthrough(csvRows[i])) {
+          toTranslate.push({ idx: i, korean });
+        }
+      }
+
+      let batchResults = null;
+      let batchError = null;
+      if (toTranslate.length > 0 && !stopRequested) {
+        try {
+          batchResults = isClaude
+            ? await callClaudeBatch(key, toTranslate)
+            : await callGeminiBatch(key, toTranslate);
+        } catch (e) {
+          batchError = e.message;
+          errors += toTranslate.length;
+          currentErrors = errors;
+          if (!errorCodes.includes(e.message)) errorCodes.push(e.message);
+          currentErrorCodes = [...errorCodes];
+          for (const { idx } of toTranslate) {
+            resultRows[idx].English = resultRows[idx].Russian = resultRows[idx].Vietnamese = 'ERROR';
+          }
+        }
+      }
+
+      if (stopRequested) break;
+
+      const translateMap = new Map(toTranslate.map((t, j) => [t.idx, j]));
+      for (let i = bStart; i < bEnd; i++) {
+        const korean = csvRows[i]['Korean'] || '';
+        let status = '', eng = '', rus = '', vie = '';
+        if (!korean.trim()) {
+          status = '건너뜀';
+        } else if (isPassthrough(csvRows[i])) {
+          resultRows[i].English = resultRows[i].Russian = resultRows[i].Vietnamese = korean;
+          status = '원문 유지 (**)'; eng = rus = vie = korean;
+          currentDone++;
+        } else if (translateMap.has(i)) {
+          const j = translateMap.get(i);
+          const tr = batchResults?.[j];
+          if (tr) {
+            resultRows[i].English = tr.English || '';
+            resultRows[i].Russian = tr.Russian || '';
+            resultRows[i].Vietnamese = tr.Vietnamese || '';
+            status = '완료'; eng = tr.English; rus = tr.Russian; vie = tr.Vietnamese;
+            currentDone++;
+          } else {
+            status = '오류: ' + (batchError || '응답 없음');
+          }
+        }
+        logRows.push({ '#': i + 1, Korean: korean.slice(0, 40), 상태: status, English: (eng || '').slice(0, 40), Russian: (rus || '').slice(0, 30), Vietnamese: (vie || '').slice(0, 30) });
+      }
+
+      const pct = Math.round(bEnd / total * 100);
+      const pbar = document.getElementById('pbar');
+      const ptext = document.getElementById('ptext');
+      if (pbar) pbar.style.width = pct + '%';
+      if (ptext && !ptext.textContent.includes('재시도')) ptext.textContent = `번역 중... ${bEnd} / ${total}`;
+
+    } else {
+      // ── 단일 행 모드 (OpenAI) ──
+      const i = bStart;
+      const row = csvRows[i];
+      const korean = row['Korean'] || '';
+      document.getElementById('pbar').style.width = Math.round((i + 1) / total * 100) + '%';
+      document.getElementById('ptext').textContent = `번역 중... ${i + 1} / ${total}`;
+
+      let status = '', eng = '', rus = '', vie = '';
+      if (!korean.trim()) {
+        status = '건너뜀';
+      } else if (isPassthrough(row)) {
+        resultRows[i].English = resultRows[i].Russian = resultRows[i].Vietnamese = korean;
+        status = '원문 유지 (**)'; eng = korean;
+        currentDone++;
+      } else {
+        try {
+          const tr = await translateFn(key, korean, buildContext(csvRows, i));
+          resultRows[i].English = tr.English || '';
+          resultRows[i].Russian = tr.Russian || '';
+          resultRows[i].Vietnamese = tr.Vietnamese || '';
+          status = '완료'; eng = tr.English; rus = tr.Russian; vie = tr.Vietnamese;
+          currentDone++;
+        } catch (e) {
+          errors++; currentErrors = errors;
+          status = '오류: ' + e.message;
+          if (!errorCodes.includes(e.message)) errorCodes.push(e.message);
+          currentErrorCodes = [...errorCodes];
+          resultRows[i].English = resultRows[i].Russian = resultRows[i].Vietnamese = 'ERROR';
+        }
+      }
+      logRows.push({ '#': i + 1, Korean: korean.slice(0, 40), 상태: status, English: (eng || '').slice(0, 40), Russian: (rus || '').slice(0, 30), Vietnamese: (vie || '').slice(0, 30) });
+    }
+
+    renderLogTable(logRows);
+    if (!stopRequested && bEnd < total) await sleep(DELAY);
+  }
+
+  if (stopRequested) return;
+  translating = false;
+  currentErrors = errors;
+  currentErrorCodes = [...errorCodes];
+  const pbar = document.getElementById('pbar');
+  if (pbar) pbar.style.width = '100%';
+  const ptext = document.getElementById('ptext');
+  if (ptext) ptext.textContent = `완료! 총 ${total}개 (오류: ${errors}개)`;
+  showDownload(total, errors, false, errorCodes);
+}
+
+function stopTranslation() {
+  stopRequested = true;
+  translating = false;
+  const actionRow = document.querySelector('#translate-inner .action-row');
+  if (actionRow) {
+    const stopBtn = actionRow.querySelector('button');
+    if (stopBtn) stopBtn.disabled = true;
+    const retryBtn = document.createElement('button');
+    retryBtn.className = 'btn btn-primary';
+    retryBtn.id = 'btn-retry';
+    retryBtn.textContent = '↺ 재시도';
+    retryBtn.onclick = () => startTranslation();
+    actionRow.appendChild(retryBtn);
+  }
+  showDownload(currentTotal, currentErrors, true, currentErrorCodes);
+}
+
+function renderLogTable(rows) {
+  const cols = ['#', 'Korean', '상태', 'English', 'Russian', 'Vietnamese'];
+  const statusClass = s => s === '완료' ? 'status-done' : s === '건너뜀' ? 'status-skip' : s.startsWith('원문') ? 'status-pass' : s.startsWith('오류') ? 'status-err' : '';
+  const tbl = document.getElementById('log-table');
+  if (!tbl) return;
+  tbl.innerHTML = `<table>
+    <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+    <tbody>${rows.map(r => `<tr>${cols.map(c => `<td class="${c === '상태' ? statusClass(r[c]) : ''}" title="${esc(String(r[c]))}">${esc(String(r[c]))}</td>`).join('')}</tr>`).join('')}</tbody>
+  </table>`;
+  tbl.parentElement.scrollTop = tbl.parentElement.scrollHeight;
+}
+
+function showDownload(total, errors, stopped, errorCodes) {
+  const status = stopped ? '중단' : (errors > 0 ? '실패' : '완료');
+  saveToHistory(csvFileName, total, errors, currentDone, buildCSVString(), status, errorCodes || []);
+  const inner = document.getElementById('translate-inner');
+  if (!inner) return;
+  const msg = stopped
+    ? `번역이 중단되었습니다. ${currentDone}행 번역됨 (전체 ${total}행).`
+    : `번역 완료! 결과를 다운로드하거나 새 파일을 번역하세요.`;
+  inner.insertAdjacentHTML('beforeend', `
+    <div class="spacer"></div>
+    <div class="${stopped ? 'info-box' : 'success-box'}" style="margin-bottom:12px;">${msg}</div>
+    <div class="action-row">
+      <button class="btn btn-dl" onclick="downloadCSV()">결과 CSV 다운로드</button>
+      <button class="btn btn-primary" onclick="newFile()">새 파일 번역</button>
+    </div>`);
+}
+
+function newFile() {
+  resultRows = null;
+  resetFile();
+}
+
+function buildCSVString() {
+  if (!resultRows || !resultRows.length) return '';
+  const headers = Object.keys(resultRows[0]);
+  const lines = [headers.join(','), ...resultRows.map(r => headers.map(h => csvField(r[h] || '')).join(','))];
+  return lines.join('\r\n');
+}
+
+function downloadCSV() {
+  triggerDownload(buildCSVString(), '자막_번역_결과.csv');
+}
+
+function triggerDownload(csvString, filename) {
+  if (!csvString) return;
+  const blob = new Blob(['﻿' + csvString], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  History
+// ─────────────────────────────────────────────────────────────────
+const HIST_KEY = 'jat_history';
+const MAX_HIST = 10;
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
+}
+
+function saveToHistory(filename, total, errors, done, csvString, status, errorCodes) {
+  const history = getHistory();
+  history.unshift({ id: Date.now(), name: filename || '번역결과', date: new Date().toLocaleDateString('ko-KR'), total, errors, done, status: status || '완료', csv: csvString, errorCodes: errorCodes || [] });
+  if (history.length > MAX_HIST) history.pop();
+  try { localStorage.setItem(HIST_KEY, JSON.stringify(history)); } catch {
+    history.pop();
+    try { localStorage.setItem(HIST_KEY, JSON.stringify(history)); } catch {}
+  }
+  renderHistory();
+}
+
+function deleteHistory(id) {
+  const history = getHistory().filter(h => h.id !== id);
+  localStorage.setItem(HIST_KEY, JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (!list) return;
+  const history = getHistory();
+  if (!history.length) {
+    list.innerHTML = '<div class="hist-empty">번역을 완료하면 이곳에 작업 이력이 쌓입니다.</div>';
+    return;
+  }
+  list.innerHTML = history.map(h => {
+    const s = h.status || '완료';
+    const badgeClass = s === '완료' ? 'hist-status-done' : s === '중단' ? 'hist-status-stop' : 'hist-status-fail';
+    const statusBadge = `<span class="${badgeClass}">${s}</span>`;
+    const resultLine = s === '중단'
+      ? `${h.done ?? '?'}/${h.total ?? '?'}행 번역${h.errors ? ` · 오류 ${h.errors}` : ''}`
+      : `${h.total ?? '?'}행 번역${h.errors ? ` · 오류 ${h.errors}` : ''}`;
+    const errorBlock = (h.errorCodes && h.errorCodes.length)
+      ? h.errorCodes.map(c => `<div class="hist-meta" style="color:#dc2626;font-size:0.69rem;word-break:break-all;margin-top:2px;">⚠ ${esc(c)}</div>`).join('')
+      : '';
+    return `
+    <div class="hist-item">
+      <div class="hist-name" title="${esc(h.name)}">${esc(h.name)}</div>
+      <div class="hist-meta" style="display:flex;align-items:center;gap:5px;">${statusBadge} ${h.date}</div>
+      <div class="hist-meta">${resultLine}</div>
+      ${errorBlock}
+      <div class="hist-actions">
+        <button class="btn-hist-dl" onclick="triggerDownload(getHistory().find(x=>x.id===${h.id})?.csv,'${esc(h.name)}')">⬇ 다운로드</button>
+        <button class="btn-hist-del" onclick="if(confirm('삭제하시겠습니까?'))deleteHistory(${h.id})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Utilities
+// ─────────────────────────────────────────────────────────────────
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function csvField(v) { const s = String(v); return (s.includes(',') || s.includes('"') || s.includes('\n')) ? `"${s.replace(/"/g,'""')}"` : s; }
+
+function exportKeys() {
+  const payload = {
+    _format: 'jat-keys-v1',
+    exportedAt: new Date().toISOString(),
+    provider: localStorage.getItem(LS.provider) || '',
+    keys: {
+      claude: getSavedKey('claude'),
+      openai: getSavedKey('openai'),
+      gemini: getSavedKey('gemini'),
+    },
+    models: {
+      claude: localStorage.getItem(LS.claude_model) || '',
+      gemini: localStorage.getItem(LS.gemini_model) || '',
+    },
+  };
+  const hasAny = Object.values(payload.keys).some(v => v);
+  if (!hasAny) { alert('내보낼 저장된 키가 없습니다.'); return; }
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `jat-api-keys-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function importKeys(file) {
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (data._format !== 'jat-keys-v1' || !data.keys) {
+      alert('올바른 키 백업 파일이 아닙니다.');
+      return;
+    }
+    if (!confirm('현재 저장된 API 키 설정을 백업 파일로 덮어쓰시겠습니까?')) return;
+    ['claude','openai','gemini'].forEach(id => {
+      const v = data.keys[id];
+      if (v) setSavedKey(id, v);
+    });
+    if (data.models?.claude) localStorage.setItem(LS.claude_model, data.models.claude);
+    if (data.models?.gemini) localStorage.setItem(LS.gemini_model, data.models.gemini);
+    if (data.provider) localStorage.setItem(LS.provider, data.provider);
+    document.getElementById('keys-import-input').value = '';
+    renderSettings();
+    renderApiCheck();
+    alert('키를 성공적으로 불러왔습니다.');
+  } catch (e) {
+    alert('파일 읽기 실패: ' + e.message);
+  }
+}
+
+function resetAll() {
+  if (!confirm('모든 API 키, 설정, 과거 이력을 초기화하시겠습니까?')) return;
+  Object.values(LS).forEach(k => localStorage.removeItem(k));
+  localStorage.removeItem(HIST_KEY);
+  SESSION_KEYS.claude = SESSION_KEYS.openai = SESSION_KEYS.gemini = '';
+  renderSettings();
+  renderApiCheck();
+  resetFile();
+  renderHistory();
+  switchTab('settings');
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  Init
+// ─────────────────────────────────────────────────────────────────
+// 세션 전용 모드면 localStorage에 남아있을 수 있는 키를 방어적으로 제거
+if (isSessionOnly()) {
+  ['claude','openai','gemini'].forEach(id => localStorage.removeItem(LS['key_' + id]));
+}
+renderSettings();
+renderApiCheck();
+renderHistory();
+</script>
+</body>
+</html>
