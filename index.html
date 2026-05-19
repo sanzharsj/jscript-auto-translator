@@ -149,6 +149,30 @@
     #tab-settings .provider-grid { gap: 8px; }
     #tab-settings .prov-opt label { padding: 6px 10px; gap: 8px; font-size: 0.82rem; flex-direction: row; flex-wrap: wrap; justify-content: flex-start; }
     #tab-settings .prov-opt label .prov-icon { font-size: 1rem; }
+
+    /* API config two-column layout */
+    .api-config-grid { display: grid; grid-template-columns: 240px 1fr; gap: 28px; }
+    .api-config-left { padding-right: 24px; border-right: 1px solid #f1f5f9; }
+    .api-config-left .card-title { border-bottom: none; padding-bottom: 6px; margin-bottom: 4px; }
+    .api-config-left .section-label { margin-bottom: 14px; text-transform: none; letter-spacing: 0; font-weight: 500; color: #94a3b8; }
+    .provider-list { display: flex; flex-direction: column; gap: 8px; }
+    .provider-list .prov-opt { flex: none; }
+    #tab-settings .provider-list .prov-opt label { flex-direction: row; flex-wrap: wrap; justify-content: flex-start; padding: 10px 12px; gap: 8px; font-size: 0.85rem; }
+    #tab-settings .provider-list .prov-opt label .prov-icon { font-size: 1.1rem; }
+    .api-config-right-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 12px; flex-wrap: wrap; }
+    .api-config-right-header .card-title { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+    .provider-block { padding: 4px 0 14px; border-bottom: 1px dashed #eef2f7; margin-bottom: 10px; }
+    .provider-block:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 4px; }
+    .model-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+    .model-chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 1.5px solid #e2e8f0; border-radius: 6px; cursor: pointer; font-size: 0.78rem; background: white; color: #374151; }
+    .model-chip.active { border-color: #1e3a5f; background: #eff6ff; color: #1e3a5f; }
+    .model-chip .model-note { color: #94a3b8; font-size: 0.71rem; font-weight: 400; }
+    .model-chip .model-label { font-weight: 600; }
+    .model-empty { font-size: 0.78rem; color: #cbd5e1; }
+    @media (max-width: 760px) {
+      .api-config-grid { grid-template-columns: 1fr; gap: 18px; }
+      .api-config-left { padding-right: 0; border-right: none; border-bottom: 1px solid #f1f5f9; padding-bottom: 18px; }
+    }
     #tab-settings .key-section { margin-top: 8px; }
     #tab-settings .key-row { padding: 8px 0; gap: 10px; }
     #tab-settings p[style] { margin-bottom: 10px !important; }
@@ -257,28 +281,35 @@
   </div>
 
   <div class="card">
-    <div class="card-title">현재 사용 API</div>
-    <div class="section-label">번역에 사용할 제공자를 선택하세요 (저장된 키가 있는 항목만 선택 가능)</div>
-    <div class="provider-grid" id="provider-grid">
-      <!-- rendered by JS -->
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">API 키 관리</div>
-    <div class="action-row" style="margin-bottom:12px;">
-      <button class="btn btn-save" onclick="exportKeys()">⬇ 키 내보내기 (.json)</button>
-      <button class="btn btn-reset" onclick="document.getElementById('keys-import-input').click()">⬆ 키 불러오기</button>
-      <input type="file" id="keys-import-input" accept=".json" style="display:none" onchange="importKeys(this.files[0])">
-    </div>
-    <div class="key-section" id="key-section">
-      <!-- rendered by JS -->
-    </div>
-    <div class="info-box" style="margin-top:14px;font-size:0.78rem;line-height:1.55;">
-      🔒 API 키는 <strong>이 브라우저의 localStorage</strong>에만 저장되며, HTML 파일 안에는 포함되지 않습니다.<br>
-      따라서 HTML을 배포·공유해도 키는 유출되지 않습니다.<br>
-      다른 PC/브라우저에서 사용하려면 위의 <strong>내보내기</strong>로 백업 후 새 환경에서 <strong>불러오기</strong>로 복원하세요.<br>
-      (백업 파일은 평문이므로 안전한 경로에 보관)
+    <div class="api-config-grid">
+      <!-- 좌: 제공자 선택 -->
+      <div class="api-config-left">
+        <div class="card-title">사용 API</div>
+        <div class="section-label">번역에 사용할 제공자를 선택하세요<br>(저장된 키가 있는 항목만 선택 가능)</div>
+        <div class="provider-list provider-grid" id="provider-grid">
+          <!-- rendered by JS -->
+        </div>
+      </div>
+      <!-- 우: 제공자별 모델 + API Key -->
+      <div class="api-config-right">
+        <div class="api-config-right-header">
+          <div class="card-title">API 키 관리</div>
+          <div class="action-row">
+            <button class="btn btn-save" onclick="exportKeys()">⬇ 키 내보내기 (.json)</button>
+            <button class="btn btn-reset" onclick="document.getElementById('keys-import-input').click()">⬆ 키 불러오기</button>
+            <input type="file" id="keys-import-input" accept=".json" style="display:none" onchange="importKeys(this.files[0])">
+          </div>
+        </div>
+        <div class="key-section" id="key-section">
+          <!-- rendered by JS -->
+        </div>
+        <div class="info-box" style="margin-top:14px;font-size:0.78rem;line-height:1.55;">
+          🔒 API 키는 <strong>이 브라우저의 localStorage</strong>에만 저장되며, HTML 파일 안에는 포함되지 않습니다.<br>
+          따라서 HTML을 배포·공유해도 키는 유출되지 않습니다.<br>
+          다른 PC/브라우저에서 사용하려면 위의 <strong>내보내기</strong>로 백업 후 새 환경에서 <strong>불러오기</strong>로 복원하세요.<br>
+          (백업 파일은 평문이므로 안전한 경로에 보관)
+        </div>
+      </div>
     </div>
   </div>
 
@@ -416,7 +447,7 @@ const CLAUDE_MODELS = [
 ];
 
 const GEMINI_MODELS = [
-  { id: 'gemini-flash-lite-latest', label: 'Gemini Flash Lite (최신)', note: '최신 별칭 · 권장', batch: 8, delay: 3000 },
+  { id: 'gemini-flash-lite-latest', label: 'Gemini 3.1 Flash Lite (최신)', note: '최신 별칭 · 권장', batch: 8, delay: 3000 },
   { id: 'gemini-2.5-flash-lite',    label: 'Gemini 2.5 Flash Lite',    note: '안정',            batch: 8, delay: 3000 },
   { id: 'gemini-2.0-flash-lite',    label: 'Gemini 2.0 Flash Lite',    note: '30RPM · 구버전',  batch: 8, delay: 3000 },
   { id: 'gemini-2.0-flash',         label: 'Gemini 2.0 Flash',         note: '15RPM · 고품질', batch: 5, delay: 5000 },
@@ -651,63 +682,51 @@ function renderSettings() {
       </div>`;
   }).join('');
 
-  // Key section
+  // Key section — 제공자별 블록: 모델 행 → API Key 행
   const section = document.getElementById('key-section');
   const currentGeminiModel = getGeminiModel();
   const currentClaudeModel = getClaudeModel();
+
+  const modelChips = (models, currentId, setterFnName, radioName) => models.map(m => `
+    <label class="model-chip ${currentId === m.id ? 'active' : ''}">
+      <input type="radio" name="${radioName}" value="${m.id}" ${currentId === m.id ? 'checked' : ''} style="display:none;" onchange="${setterFnName}('${m.id}');renderSettings();">
+      <span class="model-label">${m.label}</span>
+      <span class="model-note">${m.note}</span>
+    </label>`).join('');
+
   section.innerHTML = PROVIDERS.map(p => {
     const saved = getSavedKey(p.id);
-    let rows = '';
-    if (saved) {
-      rows += `
-        <div class="key-row">
-          <div class="key-name">${p.icon} ${p.label}</div>
-          <div class="key-input-wrap">
-            <div class="key-masked" id="key-masked-${p.id}"><span class="key-saved-dot"></span><span id="key-text-${p.id}">${maskKey(saved)}</span></div>
-            <button class="btn btn-delete" onclick="deleteKey('${p.id}')">삭제</button>
-          </div>
-        </div>`;
-    } else {
-      rows += `
-        <div class="key-row">
-          <div class="key-name">${p.icon} ${p.label}</div>
-          <div class="key-input-wrap">
-            <input class="key-input" id="input-${p.id}" type="password"
-                   placeholder="${p.id === 'claude' ? 'sk-ant-...' : p.id === 'openai' ? 'sk-...' : 'AIza...'}"
-                   onkeydown="if(event.key==='Enter')saveKey('${p.id}')">
-            <button class="btn btn-save" onclick="saveKey('${p.id}')">저장</button>
-          </div>
-        </div>`;
-    }
-    if (p.id === 'claude') {
-      rows += `
-        <div class="key-row">
-          <div class="key-name" style="color:#64748b;">모델</div>
-          <div class="key-input-wrap" style="flex-wrap:wrap;gap:6px;">
-            ${CLAUDE_MODELS.map(m => `
-              <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid ${currentClaudeModel === m.id ? '#1e3a5f' : '#e2e8f0'};border-radius:6px;cursor:pointer;font-size:0.78rem;background:${currentClaudeModel === m.id ? '#eff6ff' : 'white'};color:${currentClaudeModel === m.id ? '#1e3a5f' : '#374151'};">
-                <input type="radio" name="claude-model" value="${m.id}" ${currentClaudeModel === m.id ? 'checked' : ''} style="display:none;" onchange="setClaudeModel('${m.id}');renderSettings();">
-                <span style="font-weight:600;">${m.label}</span>
-                <span style="color:#94a3b8;font-size:0.71rem;">${m.note}</span>
-              </label>`).join('')}
-          </div>
-        </div>`;
-    }
-    if (p.id === 'gemini') {
-      rows += `
-        <div class="key-row">
-          <div class="key-name" style="color:#64748b;">모델</div>
-          <div class="key-input-wrap" style="flex-wrap:wrap;gap:6px;">
-            ${GEMINI_MODELS.map(m => `
-              <label style="display:flex;align-items:center;gap:5px;padding:5px 10px;border:1.5px solid ${currentGeminiModel === m.id ? '#1e3a5f' : '#e2e8f0'};border-radius:6px;cursor:pointer;font-size:0.78rem;background:${currentGeminiModel === m.id ? '#eff6ff' : 'white'};color:${currentGeminiModel === m.id ? '#1e3a5f' : '#374151'};">
-                <input type="radio" name="gemini-model" value="${m.id}" ${currentGeminiModel === m.id ? 'checked' : ''} style="display:none;" onchange="setGeminiModel('${m.id}');renderSettings();">
-                <span style="font-weight:600;">${m.label}</span>
-                <span style="color:#94a3b8;font-size:0.71rem;">${m.note}</span>
-              </label>`).join('')}
-          </div>
-        </div>`;
-    }
-    return rows;
+
+    let modelContent = '';
+    if (p.id === 'gemini') modelContent = modelChips(GEMINI_MODELS, currentGeminiModel, 'setGeminiModel', 'gemini-model');
+    else if (p.id === 'claude') modelContent = modelChips(CLAUDE_MODELS, currentClaudeModel, 'setClaudeModel', 'claude-model');
+    else modelContent = `<span class="model-empty">기본 모델 사용</span>`;
+
+    const modelRow = `
+      <div class="key-row">
+        <div class="key-name" style="color:#64748b;">모델</div>
+        <div class="key-input-wrap model-chip-row">${modelContent}</div>
+      </div>`;
+
+    const keyRow = saved
+      ? `<div class="key-row">
+           <div class="key-name">API Key</div>
+           <div class="key-input-wrap">
+             <div class="key-masked" id="key-masked-${p.id}"><span class="key-saved-dot"></span><span id="key-text-${p.id}">${maskKey(saved)}</span></div>
+             <button class="btn btn-delete" onclick="deleteKey('${p.id}')">삭제</button>
+           </div>
+         </div>`
+      : `<div class="key-row">
+           <div class="key-name">API Key</div>
+           <div class="key-input-wrap">
+             <input class="key-input" id="input-${p.id}" type="password"
+                    placeholder="${p.id === 'claude' ? 'sk-ant-...' : p.id === 'openai' ? 'sk-...' : 'AIza...'}"
+                    onkeydown="if(event.key==='Enter')saveKey('${p.id}')">
+             <button class="btn btn-save" onclick="saveKey('${p.id}')">저장</button>
+           </div>
+         </div>`;
+
+    return `<div class="provider-block" data-provider="${p.id}">${modelRow}${keyRow}</div>`;
   }).join('');
 }
 
